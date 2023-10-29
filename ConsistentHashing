@@ -1,0 +1,85 @@
+import java.util.*;
+
+public class ConsistentHashing {
+
+    private static final int REPLICATION_FACTOR = 3;
+
+    private final HashRing hashRing;
+
+    public ConsistentHashing() {
+        this.hashRing = new HashRing(REPLICATION_FACTOR);
+    }
+
+    public void addNode(Node node) {
+        this.hashRing.addNode(node);
+    }
+
+    public String getServerForData(String data) {
+        int hash = this.hashRing.hash(data);
+        return this.hashRing.getNode(hash);
+    }
+
+    private static class HashRing {
+
+        private final List<Node> nodes;
+
+        private final Map<Integer, Node> hashToNodeMap;
+
+        public HashRing(int replicationFactor) {
+            this.nodes = new ArrayList<>();
+            this.hashToNodeMap = new HashMap<>();
+
+            for (int i = 0; i < replicationFactor; i++) {
+                this.nodes.add(new DummyNode("Node-" + i));
+            }
+        }
+
+        public void addNode(Node node) {
+            this.nodes.add(node);
+
+            for (int i = 0; i < this.nodes.size(); i++) {
+                this.hashToNodeMap.put(i, this.nodes.get(i));
+            }
+        }
+
+        public int hash(String data) {
+            return Math.abs(data.hashCode() % this.nodes.size());
+        }
+
+        public Node getNode(int hash) {
+            return this.hashToNodeMap.get(hash);
+        }
+    }
+
+    public static interface Node {
+        String getName();
+    }
+
+    public static class DummyNode implements Node {
+
+        private final String name;
+
+        public DummyNode(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String getName() {
+            return this.name;
+        }
+    }
+
+    public static void main(String[] args) {
+        ConsistentHashing consistentHashing = new ConsistentHashing();
+
+        consistentHashing.addNode(new DummyNode("Node-1"));
+        consistentHashing.addNode(new DummyNode("Node-2"));
+        consistentHashing.addNode(new DummyNode("Node-3"));
+
+        String data = "my-data";
+
+        String server = consistentHashing.getServerForData(data);
+
+        System.out.println("Data will be stored on server: " + server);
+    }
+}
